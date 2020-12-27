@@ -21,11 +21,19 @@ module Serviceworker
 
       def update_application_js
         ext, directive = detect_js_format
-        snippet = "#{directive} require serviceworker-companion\n"
+
+        snippet = if defined?(::Webpacker)
+          'require("./serviceworker-companion");'
+                  else # sprockets
+          "#{directive} require serviceworker-companion\n"
+                  end
+
         append_to_file application_js_path(ext), snippet
       end
 
       def update_precompiled_assets
+        return if defined?(::Webpacker)
+
         snippet = "Rails.configuration.assets.precompile += %w[serviceworker.js manifest.json]\n"
         file_path = initializers_dir("assets.rb")
         FileUtils.touch file_path
@@ -70,7 +78,11 @@ module Serviceworker
       end
 
       def javascripts_dir(*paths)
-        join("app", "assets", "javascripts", *paths)
+        if defined?(::Webpacker)
+          join("app", "javascript", "packs", *paths)
+        else
+          join("app", "assets", "javascripts", *paths)
+        end
       end
 
       def initializers_dir(*paths)
